@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 
-namespace LinkShortener.WebApi
+namespace LinkShortener.WebApi.Entities
 {
     public class CompressedLinkEntity
     {

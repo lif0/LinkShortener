@@ -1,4 +1,4 @@
-﻿namespace LinkShortener.WebApi
+﻿namespace LinkShortener.WebApi.ViewModels
 {
     public class CompressedLinkViewModel
     {

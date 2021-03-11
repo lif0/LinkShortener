@@ -1,9 +1,10 @@
 ﻿using System.Threading.Tasks;
+using LinkShortener.WebApi.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
-namespace LinkShortener.WebApi
+namespace LinkShortener.WebApi.Extensions
 {
     public static class EndpointsExtension
     {
@@ -20,7 +21,7 @@ namespace LinkShortener.WebApi
                 if(entry != null)
                 {
                     entry.OpenedCount += 1;
-                    await collection.ReplaceOneAsync((p => p.Id == path), entry, new UpdateOptions {IsUpsert = true});
+                    await collection.ReplaceOneAsync((p => p.Id == path), entry, new ReplaceOptions {IsUpsert = true});
                     redirect = entry.Link;
                 }
                     

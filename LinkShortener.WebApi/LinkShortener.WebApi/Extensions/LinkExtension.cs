@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LinkShortener.WebApi
+namespace LinkShortener.WebApi.Extensions
 {
     public static class LinkExtension
     {

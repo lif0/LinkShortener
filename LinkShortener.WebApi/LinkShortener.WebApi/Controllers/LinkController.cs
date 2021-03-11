@@ -4,7 +4,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.Linq;
-    
+using LinkShortener.WebApi.Entities;
+using LinkShortener.WebApi.Extensions;
+using LinkShortener.WebApi.ViewModels;
+
 namespace LinkShortener.WebApi.Controllers
 {
     [ApiController]
@@ -48,13 +51,13 @@ namespace LinkShortener.WebApi.Controllers
                 
                 string compressedUrl = $"{this.Request.Scheme}://{this.Request.Host}/{entityId}";
                 
-                if (this.HttpContext.Request.Cookies.ContainsKey(Global.BrowserUserId))
+                if (this.HttpContext.Request.Cookies.ContainsKey(Cookies.BrowserUserId))
                 {
-                    var browserUserId = Guid.Parse(this.HttpContext.Request.Cookies[Global.BrowserUserId]);
+                    var browserUserId = Guid.Parse(this.HttpContext.Request.Cookies[Cookies.BrowserUserId]);
                     
                     var noAuthUser = await _usersCollection.Find(_ => _.Id == browserUserId).FirstOrDefaultAsync();
                     noAuthUser.Links.Add(compressedUrl);
-                    await _usersCollection.ReplaceOneAsync((p => p.Id == browserUserId), noAuthUser, new UpdateOptions {IsUpsert = true});
+                    await _usersCollection.ReplaceOneAsync((p => p.Id == browserUserId), noAuthUser, new ReplaceOptions {IsUpsert = true});
                 }
                 else
                 {
@@ -66,7 +69,7 @@ namespace LinkShortener.WebApi.Controllers
                     };
                     newUser.Links.Add(compressedUrl);
                     await _usersCollection.InsertOneAsync(newUser);
-                    this.HttpContext.Response.Cookies.Append(Global.BrowserUserId,browserUserId.ToString());
+                    this.HttpContext.Response.Cookies.Append(Cookies.BrowserUserId,browserUserId.ToString());
                 }
                 
                 return this.Ok(compressedUrl);
@@ -94,9 +97,9 @@ namespace LinkShortener.WebApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetMyCompressedLink()
         {
-            if (this.HttpContext.Request.Cookies.ContainsKey(Global.BrowserUserId))
+            if (this.HttpContext.Request.Cookies.ContainsKey(Cookies.BrowserUserId))
             {
-                var browserUserId = Guid.Parse(this.HttpContext.Request.Cookies[Global.BrowserUserId]);
+                var browserUserId = Guid.Parse(this.HttpContext.Request.Cookies[Cookies.BrowserUserId]);
                 var cursor = await _usersCollection.FindAsync(u => u.Id == browserUserId);
                 var result = await cursor.FirstOrDefaultAsync();
                 return this.Ok(result.Links);

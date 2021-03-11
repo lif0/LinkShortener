@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Linq;
-using System.Text;
 
 namespace LinkShortener.WebApi
 {
+    //Такой генератор не подошел бы для реального проекта, скорее всего нужно было бы генерировать уникальную ссылку на основе какого-нибудь
+    //изменяемого числа, например айдишника в бд.
+    //Но я думаю вариант ниже полностью удовлетворит это тестовое задание
     public static class Generator
     {
         private static Random _random = new Random();
