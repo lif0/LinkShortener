@@ -34,7 +34,7 @@ namespace LinkShortener.WebApi
             var mongoDb = new MongoClient(mongoUrl).GetDatabase(mongoUrl.DatabaseName);
             
             services.AddSingleton(mongoDb);
-            services.AddScoped((_) => { return mongoDb.GetCollection<string>(MongoСompressedLinkCollection); });
+            services.AddScoped(_ => { return mongoDb.GetCollection<CompressedLinkEntity>(MongoСompressedLinkCollection); });
             services.AddRouting();
             services.AddControllers();
             services.AddSwaggerGen(c =>
