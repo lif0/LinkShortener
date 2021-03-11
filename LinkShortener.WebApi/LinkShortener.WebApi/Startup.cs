@@ -49,7 +49,11 @@ namespace LinkShortener.WebApi
             app.UseRouting();
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "LinkShortener WebApi"));
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+                endpoints.MapFallback(EndpointsExtension.RedirectToLink);
+            });
         }
     }
 }

@@ -17,37 +17,42 @@ namespace LinkShortener.WebApi.Controllers
         {
             _linkCollection = linkCollection;
         }
-
-
+        
         [HttpPost]
         public async Task<IActionResult> Compress(string link)
         {
-            var entity = await _linkCollection.Find(_ => _.Link == link).FirstOrDefaultAsync();
-            string entityId = entity?.Id;
-            if (entity == null)
+            if (LinkExtension.IsValidLink(link))
             {
-                entityId = Generator.GenerateUniqLink();
-                bool exists = true;
-                while (exists)
+                var entity = await _linkCollection.Find(_ => _.Link == link).FirstOrDefaultAsync();
+                string entityId = entity?.Id;
+                if (entity == null)
                 {
-                    exists = await _linkCollection.Find(_ => _.Id == entityId).AnyAsync();
-                    if (exists) entityId = Generator.GenerateUniqLink();
-                }
+                    entityId = Generator.GenerateUniqLink();
+                    bool exists = true;
+                    while (exists)
+                    {
+                        exists = await _linkCollection.Find(_ => _.Id == entityId).AnyAsync();
+                        if (exists) entityId = Generator.GenerateUniqLink();
+                    }
 
-                var newEntity = new CompressedLinkEntity
-                {
-                    Link = link,
-                    Id = entityId,
-                    OpenedCount = 0
-                };
-                await _linkCollection.InsertOneAsync(newEntity);
+                    var newEntity = new CompressedLinkEntity
+                    {
+                        Link = link,
+                        Id = entityId,
+                        OpenedCount = 0
+                    };
+                    await _linkCollection.InsertOneAsync(newEntity);
+                }
+                
+                return this.Ok($"{this.Request.Scheme}://{this.Request.Host}/{entityId}");
             }
-            return this.Ok($"{this.Request.Scheme}://{this.Request.Host}/{entityId}");
+
+            return this.BadRequest("Link is not valid");
         }
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllCompressedLink()
+        public async Task<IActionResult> GetAll()
         {
             var cursor = await _linkCollection.FindAsync(FilterDefinition<CompressedLinkEntity>.Empty);
             var result = new List<CompressedLinkViewModel>();
@@ -60,20 +65,6 @@ namespace LinkShortener.WebApi.Controllers
             }
 
             return this.Ok(result);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Decompress(string link)
-        {
-            link = link.Replace($"{this.Request.Scheme}://{this.Request.Host}/", "");
-            var entry = await _linkCollection.FindSync(p => p.Id == link.Trim()).SingleOrDefaultAsync();
-            if(entry != null)
-            {
-                entry.OpenedCount += 1;
-                await _linkCollection.ReplaceOneAsync((p => p.Id == link), entry, new UpdateOptions {IsUpsert = true});
-            }
-
-            return this.Ok(entry?.Link);
         }
     }
 }
