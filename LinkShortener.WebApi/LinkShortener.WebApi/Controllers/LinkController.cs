@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
-
+using System.Linq;
+    
 namespace LinkShortener.WebApi.Controllers
 {
     [ApiController]
@@ -46,6 +47,33 @@ namespace LinkShortener.WebApi.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllCompressedLink() => this.Ok();
+        public async Task<IActionResult> GetAllCompressedLink()
+        {
+            var cursor = await _linkCollection.FindAsync(FilterDefinition<CompressedLinkEntity>.Empty);
+            var result = new List<CompressedLinkViewModel>();
+            while (await cursor.MoveNextAsync())
+            {
+                var links = cursor.Current;
+                var s = links.Select(l => new CompressedLinkViewModel
+                    {CompressedLink = $"{this.Request.Scheme}://{this.Request.Host}/{l.Id}", OpenedCount = l.OpenedCount});
+                result.AddRange(s);
+            }
+
+            return this.Ok(result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Decompress(string link)
+        {
+            link = link.Replace($"{this.Request.Scheme}://{this.Request.Host}/", "");
+            var entry = await _linkCollection.FindSync(p => p.Id == link.Trim()).SingleOrDefaultAsync();
+            if(entry != null)
+            {
+                entry.OpenedCount += 1;
+                await _linkCollection.ReplaceOneAsync((p => p.Id == link), entry, new UpdateOptions {IsUpsert = true});
+            }
+
+            return this.Ok(entry?.Link);
+        }
     }
 }
