@@ -15,7 +15,8 @@ namespace LinkShortener.WebApi
                 string redirect = "/";
                 var collection = ctx.RequestServices.GetService<IMongoCollection<CompressedLinkEntity>>();
                 string path = ctx.Request.Path.ToUriComponent().Trim('/');
-                var entry = await collection.FindSync(p => p.Id == path).SingleOrDefaultAsync();
+                var cursor = await collection.FindAsync(p => p.Id == path);
+                var entry = await cursor.SingleOrDefaultAsync();
                 if(entry != null)
                 {
                     entry.OpenedCount += 1;

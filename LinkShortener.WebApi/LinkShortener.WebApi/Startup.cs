@@ -19,6 +19,7 @@ namespace LinkShortener.WebApi
     {
         private static string mongoDbConnStr = "mongodb://192.168.99.100:27017/compressed_link_db";
         private static string MongoСompressedLinkCollection = "compressed_links";
+        private static string MongoNoAuthUserCollection = "noauth_users";
         
         public Startup(IConfiguration configuration)
         {
@@ -35,6 +36,7 @@ namespace LinkShortener.WebApi
             
             services.AddSingleton(mongoDb);
             services.AddScoped(_ => { return mongoDb.GetCollection<CompressedLinkEntity>(MongoСompressedLinkCollection); });
+            services.AddScoped(_ => { return mongoDb.GetCollection<NoAuthUserLinkEntity>(MongoNoAuthUserCollection); });
             services.AddRouting();
             services.AddControllers();
             services.AddSwaggerGen(c =>

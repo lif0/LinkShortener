@@ -12,10 +12,12 @@ namespace LinkShortener.WebApi.Controllers
     public class LinkController : ControllerBase
     {
         private readonly IMongoCollection<CompressedLinkEntity> _linkCollection;
+        private readonly IMongoCollection<NoAuthUserLinkEntity> _usersCollection;
 
-        public LinkController(IMongoCollection<CompressedLinkEntity> linkCollection)
+        public LinkController(IMongoCollection<CompressedLinkEntity> linkCollection, IMongoCollection<NoAuthUserLinkEntity> usersCollection)
         {
             _linkCollection = linkCollection;
+            _usersCollection = usersCollection;
         }
         
         [HttpPost]
@@ -44,13 +46,35 @@ namespace LinkShortener.WebApi.Controllers
                     await _linkCollection.InsertOneAsync(newEntity);
                 }
                 
-                return this.Ok($"{this.Request.Scheme}://{this.Request.Host}/{entityId}");
+                string compressedUrl = $"{this.Request.Scheme}://{this.Request.Host}/{entityId}";
+                
+                if (this.HttpContext.Request.Cookies.ContainsKey(Global.BrowserUserId))
+                {
+                    var browserUserId = Guid.Parse(this.HttpContext.Request.Cookies[Global.BrowserUserId]);
+                    
+                    var noAuthUser = await _usersCollection.Find(_ => _.Id == browserUserId).FirstOrDefaultAsync();
+                    noAuthUser.Links.Add(compressedUrl);
+                    await _usersCollection.ReplaceOneAsync((p => p.Id == browserUserId), noAuthUser, new UpdateOptions {IsUpsert = true});
+                }
+                else
+                {
+                    Guid browserUserId = Guid.NewGuid();
+                    var newUser = new NoAuthUserLinkEntity
+                    {
+                        Id = browserUserId,
+                        Links = new List<string>()
+                    };
+                    newUser.Links.Add(compressedUrl);
+                    await _usersCollection.InsertOneAsync(newUser);
+                    this.HttpContext.Response.Cookies.Append(Global.BrowserUserId,browserUserId.ToString());
+                }
+                
+                return this.Ok(compressedUrl);
             }
 
-            return this.BadRequest("Link is not valid");
+            return this.BadRequest("Link is not valid, please use Http or Https scheme");
         }
-
-
+        
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -65,6 +89,20 @@ namespace LinkShortener.WebApi.Controllers
             }
 
             return this.Ok(result);
+        }
+        
+        [HttpGet]
+        public async Task<IActionResult> GetMyCompressedLink()
+        {
+            if (this.HttpContext.Request.Cookies.ContainsKey(Global.BrowserUserId))
+            {
+                var browserUserId = Guid.Parse(this.HttpContext.Request.Cookies[Global.BrowserUserId]);
+                var cursor = await _usersCollection.FindAsync(u => u.Id == browserUserId);
+                var result = await cursor.FirstOrDefaultAsync();
+                return this.Ok(result.Links);
+            }
+            
+            return this.Ok(new List<string>());
         }
     }
 }
